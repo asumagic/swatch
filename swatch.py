@@ -101,16 +101,19 @@ async def list_jobs(request: web.Request):
     return web.Response(content_type="text/html", body=table_template.render(jobs=jobs))
 
 async def list_nodes(request: web.Request):
-    nodes = (await simple_cache(query_nodes)).values()
+    nodes, jobs = await asyncio.gather(
+        simple_cache(query_nodes),
+        simple_cache(query_jobs)
+    )
 
-    jobs = (await simple_cache(query_jobs)).values()
+    nodes = list(nodes.values())
+
+    jobs = jobs.values()
     jobs = sorted(jobs, key=make_job_sort_key())
-
-    nodes = list(nodes)
 
     table_template = lookup.get_template("nodelist.html")
 
-    return web.Response(content_type="text/html", body=table_template.render(nodes=nodes, jobs = jobs))
+    return web.Response(content_type="text/html", body=table_template.render(nodes=nodes, jobs=jobs))
 
 # async def read_log_file(request: web.Request):
 #     job_id = request.query["jobId"]
