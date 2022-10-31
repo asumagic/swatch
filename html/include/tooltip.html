@@ -5,16 +5,48 @@ def escape_breaks(text):
 
 def escape_quotes(text):
     return text.replace("\"", "&quot;")
+
+from collections import defaultdict
 %>
 
-<%def name="tooltip(title)"> data-bs-toggle="tooltip" data-placement="right" title="${title}"</%def>
-<%def name="rich_tooltip()" filter="escape_breaks"> data-bs-toggle="tooltip" data-placement="right" data-bs-html="true" title="${capture(caller.body) | escape_quotes}"</%def>
+<%!
+tooltip_counter = 0
+
+def tooltip_inc():
+    global tooltip_counter
+    tooltip_counter += 1
+    return tooltip_counter
+
+tooltips = defaultdict(tooltip_inc)
+%>
+
+<%def name="tooltip(title)"><%
+    title_id = tooltips[title]
+%>
+ data-bs-toggle="tooltip" data-placement="right" data-title-id="${title_id}"</%def>
+
+<%def name="rich_tooltip()"><%
+    title_id = tooltips[escape_quotes(capture(caller.body))]
+%>
+ data-bs-toggle="tooltip" data-placement="right" data-bs-html="true" data-title-id="${title_id}"</%def>
 
 <%def name="tooltip_trigger_js()">
+    %for title, tooltip_id in tooltips.items():
+        <div id="tooltip-title-${tooltip_id}" hidden title="${title}"></div>
+    %endfor
+
     <script defer>
+        function tooltipContents() {
+            const titleId = this.dataset.titleId;
+            const titleEl = document.getElementById("tooltip-title-" + titleId);
+            return titleEl.title;
+        }
+
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl, {})
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                title: tooltipContents
+            })
         });
     </script>
 </%def>
