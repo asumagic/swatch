@@ -1,0 +1,20 @@
+<%!
+def escape_breaks(text):
+    return text
+    #return text.replace("\n", "<br>")
+
+def escape_quotes(text):
+    return text.replace("\"", "&quot;")
+%>
+
+<%def name="tooltip(title)"> data-bs-toggle="tooltip" data-placement="right" title="${title}"</%def>
+<%def name="rich_tooltip()" filter="escape_breaks"> data-bs-toggle="tooltip" data-placement="right" data-bs-html="true" title="${capture(caller.body) | escape_quotes}"</%def>
+
+<%def name="tooltip_trigger_js()">
+    <script defer>
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {})
+        });
+    </script>
+</%def>

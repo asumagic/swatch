@@ -1,0 +1,39 @@
+name: swatch
+channels:
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - _openmp_mutex=5.1=1_gnu
+  - aiohttp=3.8.1=py39h7f8727e_1
+  - aiosignal=1.2.0=pyhd3eb1b0_0
+  - async-timeout=4.0.2=py39h06a4308_0
+  - attrs=21.4.0=pyhd3eb1b0_0
+  - ca-certificates=2022.10.11=h06a4308_0
+  - certifi=2022.9.24=py39h06a4308_0
+  - charset-normalizer=2.0.4=pyhd3eb1b0_0
+  - frozenlist=1.2.0=py39h7f8727e_0
+  - idna=3.4=py39h06a4308_0
+  - ld_impl_linux-64=2.38=h1181459_1
+  - libffi=3.3=he6710b0_2
+  - libgcc-ng=11.2.0=h1234567_1
+  - libgomp=11.2.0=h1234567_1
+  - libstdcxx-ng=11.2.0=h1234567_1
+  - mako=1.2.3=py39h06a4308_0
+  - markupsafe=2.1.1=py39h7f8727e_0
+  - multidict=6.0.2=py39h5eee18b_0
+  - ncurses=6.3=h5eee18b_3
+  - openssl=1.1.1q=h7f8727e_0
+  - pip=22.2.2=py39h06a4308_0
+  - python=3.9.13=haa1d7c7_2
+  - readline=8.2=h5eee18b_0
+  - setuptools=65.4.0=py39h06a4308_0
+  - sqlite=3.39.3=h5082296_0
+  - tk=8.6.12=h1ccaba5_0
+  - tzdata=2022e=h04d1e81_0
+  - wheel=0.37.1=pyhd3eb1b0_0
+  - xz=5.2.6=h5eee18b_0
+  - yarl=1.8.1=py39h5eee18b_0
+  - zlib=1.2.13=h5eee18b_0
+  - pip:
+    - aiohttp-basicauth==1.0.0
+    - typing-extensions==4.4.0

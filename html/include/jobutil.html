@@ -1,0 +1,131 @@
+<%!
+import datetime
+from collections import defaultdict
+from jobstate import as_slurm_timedelta
+
+job_bs_class_map = defaultdict(lambda: "bg-light", {
+    "RUNNING":       "table-success",
+    "CANCELLED":     "table-warning",
+    "PENDING":       "table-secondary",
+    "FAILED":        "table-danger",
+    "TIMEOUT":       "table-danger",
+    "OUT_OF_MEMORY": "table-danger",
+    "COMPLETED":     ""
+})
+
+job_bs_icon_map = defaultdict(lambda: "bi-question-octagon", {
+    "RUNNING":       "bi-arrow-right-circle",
+    "CANCELLED":     "bi-slash-circle",
+    "PENDING":       "bi-hourglass-split",
+    "FAILED":        "bi-bug",
+    "TIMEOUT":       "bi-alarm",
+    "OUT_OF_MEMORY": "bi-memory",
+    "COMPLETED":     "bi-check-circle"
+})
+%>
+
+<%namespace name="tooltip" file="tooltip.html"/>
+
+<%def name="get_job_class(job)"><%
+    return job_bs_class_map.get(job.job_state)
+%></%def>
+
+<%def name="get_job_icon(job)"><%
+    return job_bs_icon_map.get(job.job_state)
+%></%def>
+
+<%def name="get_partition_icon(partition)"><%
+if partition == "gpu":
+    return '<i class="bi bi-gpu-card"></i>'
+elif partition == 'cpuonly':
+    return '<i class="bi bi-cpu-fill"></i>'
+return partition
+%></%def>
+
+<%def name="node_divisor(job)">
+%if job.get_node_count() > 1:
+    <span class="text-muted small" ${tooltip.tooltip("The displayed resource cost is for one job; divide by this node count for real job resource usage")}>÷${job.get_node_count()}</span>
+%endif
+</%def>
+
+<%def name="node_multiplier(job)">
+%if job.get_node_count() > 1:
+    <span class="text-muted small" ${tooltip.tooltip("The displayed resource cost is for one node; multiply by this node count for real job resource usage")}>${job.get_node_count()}× </span>
+%endif
+</%def>
+
+<%def name="make_job_row(job, compact=False)">
+	<tr class="${get_job_class(job)}">
+        %if not compact:
+		<td class="min">
+			<i class="bi ${get_job_icon(job)}" <%tooltip:rich_tooltip><pre>Reasons for the ${job.job_state} state: ${", ".join(job.job_state_reasons)}
+
+Exit code:   ${job.exit_code}
+Exit signal: ${job.exit_signal}</pre></%tooltip:rich_tooltip>
+            </i>
+			
+			${get_partition_icon(job.partition) |n}
+		</td>
+        %endif
+
+		<th scope="row" class="min">${job.job_id}</th>
+
+		<td class="cut" style="min-width: 30px; max-width: 80px;">${job.user_name}</td>
+
+		<td class="cut" style="min-width: 30px; max-width: 400px;" <%tooltip:rich_tooltip>
+<pre>
+Command:  ${job.command}
+Workdir:  ${job.workdir}
+
+e-mail:   ${job.mail_user} (on: ${job.mail_type})
+
+sbatch:   ${job.was_run_using_sbatch}
+
+Features: ${job.features}</pre></%tooltip:rich_tooltip>>${job.job_name}</td>
+
+        %if not compact:
+		<td class="cut" style="max-width: 15%;" <%tooltip:rich_tooltip>
+<pre>
+#Requested: ${job.get_node_count()}
+Requested:  ${job.requested_nodes}
+Excluded:   ${job.excluded_nodes}
+Allocated:  ${job.nodes}
+
+#Sockets/Node: ${job.sockets_per_node}
+#Tasks/Node:   ${job.tasks_per_node}
+#Tasks/Board:  ${job.tasks_per_baseboard}
+#Tasks/Socket: ${job.tasks_per_socket}
+#Tasks/Core:   ${job.tasks_per_core}</pre></%tooltip:rich_tooltip>>
+			${f"{len(job.nodes)}: {', '.join(job.nodes)}" if job.nodes is not None else job.get_node_count()}
+        </td>
+        %endif
+
+		<td class="min">${job.get_cpus()}${node_divisor(job) if compact else ""}</td>
+		<td class="min">${job.get_ram()}${node_divisor(job) if compact else ""}</td>
+		<td class="cut" style="max-width: 7%;">${node_multiplier(job) if not compact else ""}${job.get_gpus(compact)}</td>
+		%if not compact:
+        <td class="min" <%tooltip:rich_tooltip>
+<pre>
+Submitted:    ${job.submit_time}
+Eligible:     ${job.eligible_time}
+Accrue time:  ${job.accrue_time}
+Start time:   ${job.start_time}
+End time:     ${job.end_time}
+Deadline:     ${job.deadline}
+Suspend time: ${job.suspend_time}</pre></%tooltip:rich_tooltip>>
+			${as_slurm_timedelta(job.run_time)}</td>
+        %endif
+
+		<!--<td class="min">
+%if job.stdout_path is not None or job.stderr_path is not None:
+			<a class="link-unstyled" href="/logs?jobId=${job.job_id}" target="_blank">
+                <i class="bi bi-journal-text" <%tooltip:rich_tooltip>
+<pre>
+stdout: ${job.stdout_path}
+stderr: ${job.stderr_path}
+</pre></%tooltip:rich_tooltip>></i>
+            </a>
+%endif
+		</td>-->
+	</tr>\
+</%def>

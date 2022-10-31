@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<%!
+import datetime
+from jobstate import as_slurm_timedelta
+%>
+<%namespace file="include/bscommon.html" name="bscommon"/>
+<%namespace file="include/jobutil.html" name="jobutil"/>
+<%namespace file="include/tooltip.html" name="tooltip"/>
+<%page expression_filter="h"/>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<meta name="description" content="">
+		<meta name="author" content="">
+
+		<title>swatch/jobs</title>
+
+		<%bscommon:bootstrap_head />
+
+		<style>
+			<%include file="include/stylecommon.css" args="**context.kwargs" />
+		</style>
+	</head>
+
+	<body>
+		<main role="main">
+			<%self:make_job_table jobs="${jobs}" />
+		</main>
+
+		<%tooltip:tooltip_trigger_js />
+	</body>
+</html>
+
+<%def name="make_job_table(jobs, compact=False)">
+	<div class="table-responsive w-100 d-block d-md-table">
+		<table class="table job-table w-100 table-sm table-striped table-hover">
+			<thead class="table-light">
+				%if not compact:
+				<th scope="col">State</th>
+				%endif
+				<th scope="col">Id</th>
+				<th scope="col"><i class="bi bi-person"></i></th>
+				<th scope="col">Job</th>
+				%if not compact:
+				<th scope="col"><i class="bi bi-hdd-network" ${tooltip.tooltip("Allocated nodes for each job, or the amount of requested nodes if unknown.")}></i></th>
+				%endif
+				<th scope="col"><i class="bi bi-cpu" ${tooltip.tooltip("Number of logical cores to be allocated PER JOB. Nodes typically use 2-way hyper-threaded processors, meaning they provide two logical cores (threads) per physical core.")}></i></th>
+				<th scope="col"><i class="bi bi-memory" ${tooltip.tooltip("RAM allocated PER JOB. If a task's processes exceed this limit, the task will be oom-killed.")}></i></th>
+				<th scope="col"><i class="bi bi-gpu-card" ${tooltip.tooltip("GPUs to allocate PER NODE. It is possible to request specific GPUs, or a set of GPUs provided any number of constraints.")}></i></th>
+				%if not compact:
+				<th scope="col"><i class="bi bi-stopwatch"></i></th>
+				%endif
+				<!--<th scope="col"></th>-->
+			</thead>
+			<tbody>
+				% for job in jobs:
+					${jobutil.make_job_row(job, compact)}
+				% endfor
+			</tbody>
+		</table>
+	</div>
+</%def>

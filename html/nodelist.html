@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<%!
+import datetime
+from jobstate import as_slurm_timedelta
+from dataclasses import fields
+
+def format_resource_map(resources):
+	if len(resources) == 0:
+		return "None"
+	return "\n".join(f"- {k:<16}: {v}" for k, v in resources.items())
+
+def format_resource_list(resources):
+	if resources is None:
+		return "None"
+	
+	return "\n".join(f"- {res}" for res in resources)
+%>
+<%namespace file="include/bscommon.html" name="bscommon"/>
+<%namespace file="include/jobutil.html" name="jobutil"/>
+<%namespace file="joblist.html" name="joblist"/>
+<%namespace file="include/tooltip.html" name="tooltip"/>
+<%page expression_filter="h"/>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<meta name="description" content="">
+		<meta name="author" content="">
+
+		<title>swatch/nodes</title>
+
+		<%bscommon:bootstrap_head />
+
+		<style>
+            <%include file="include/stylecommon.css" args="**context.kwargs" />
+		</style>
+	</head>
+
+	<body>
+		<main role="main">
+			<%
+			partition_set = set()
+			for node in nodes:
+				for node_partition in node.partitions:
+					partition_set.add(node_partition)
+			
+            # HACK: we want gpu before cpu so let's consistently sort reversed :)
+			for partition in sorted(list(partition_set), reverse=True):
+				filtered_nodes = filter(lambda node: partition in node.partitions, nodes)
+				make_partition(partition, filtered_nodes)
+			%>
+		</main>
+
+        <%tooltip:tooltip_trigger_js />
+	</body>
+</html>
+
+<%def name="progress_bar(ratio, sub_ratio=None)" filter="n">
+	<%
+	color_class = "bg-primary"
+
+	# for now let's keep the blue color regardless of the %
+	# it only adds unnecessary noise otherwise.
+	# if ratio > 0.7:
+	#     color_class = "bg-warning"
+	# if ratio > 0.9:
+	#     color_class = "bg-danger"
+	%>
+	<div class="progress w-100" style="min-width: 100px;">
+		%if sub_ratio is not None:
+		<div class="progress-bar progress-bar-striped ${color_class}" role="progressbar" style="width: ${int(sub_ratio*100)}%;" aria-valuenow="${sub_ratio}" aria-valuemin="0" aria-valuemax="1"></div>
+		<% ratio -= sub_ratio %>
+		%endif
+		<div class="progress-bar ${color_class}" role="progressbar" style="width: ${int(ratio*100)}%;" aria-valuenow="${ratio}" aria-valuemin="0" aria-valuemax="1"></div>
+
+		<small class="justify-content-center d-flex position-absolute pbar-text">${caller.body()}</small>
+	</div>
+</%def>
+
+<%def name="make_node_card_contents(node)">
+	<%
+	text_specs = []
+
+	text_specs.append(f"{node.cpu_total // node.threads_per_core}c/{node.cpu_total}t")
+
+	if len(node.gres) > 0:
+		text_specs.append("+".join(node.gres.values()))
+
+	has_gpu = "gres/gpu" in node.tres_total
+	%>
+	<p class="card-text">
+		<a href="/jobs?node=${node.name}" target="_blank" class="link-unstyled">
+			<i class="bi bi-list-task"></i>
+		</a>
+
+		${node.name} (${", ".join(text_specs)})
+	</p>
+
+	<div class="node-stats">
+		%if node.state_reason is not None:
+		<div class="row">
+			<div class="col-md-auto">
+				Node down (${node.state}): ${node.state_reason.strip("§ ")}
+			</div>
+		</div>
+		%endif
+
+		%if node.up and node.memory_alloc_mbytes is not None and node.memory_total_mbytes > 0 and node.memory_total_mbytes is not None and node.memory_free_mbytes is not None:
+		<div class="row">
+			<div class="col-md-auto" style="width: 100px;" <%tooltip:rich_tooltip>RAM allocated by Slurm jobs.<br>
+                <br>
+                The bar represents memory that has been allocated by Slurm jobs.<br>
+                <b>Even if your job actually uses less memory than you have allocated in practice, you lock other users from allocating more memory to theirs!</b><br>
+                <br>
+                The striped slice of the bar represents used memory, <b>including file cache</b> (which is not necessarily a useful metric).<br>
+                File cache is system-wide and is not affected by Slurm job allocations.<br>
+                If the striped slice is consistently small compared to the rest of the bar, it is likely that users are over-allocating memory for their Slurm jobs.</%tooltip:rich_tooltip>>RAM used+alloc:</div>
+			<div class="col">
+				<%
+				mem_used = node.memory_total_mbytes - node.memory_free_mbytes
+				mem_alloc = node.memory_alloc_mbytes
+				mem_total = node.memory_total_mbytes
+
+				mem_used_ratio = mem_used / mem_total
+				mem_alloc_ratio = mem_alloc / mem_total
+				%>
+				<%self:progress_bar ratio="${mem_alloc_ratio}" sub_ratio="${min(mem_used_ratio, mem_alloc_ratio)}">
+					${int(mem_alloc)}/${int(mem_total)}MB
+				</%self:progress_bar>
+			</div>
+		</div>
+		%endif
+
+		<!--
+		%if node.up and node.cpu_load is not None:
+		<div class="row">
+			<div class="col-md-auto" style="width: 100px;">CPU load:</div>
+			<div class="col">
+				<%self:progress_bar ratio="${node.cpu_load / 100}">${node.cpu_load}%</%self:progress_bar>
+			</div>
+		</div>
+		%endif
+		-->
+
+		%if node.up and node.cpu_total != 0:
+		<div class="row">
+			<div class="col-md-auto" style="width: 100px;" <%tooltip:rich_tooltip>Threads allocated by Slurm jobs.<br>
+<br>
+This figure and --cpus-per-node usually refer to the amount of <i>logical</i> cores allocated, not <i>physical</i> cores.<br>
+In 2-way hyper-threaded systems, there are twice as many logical cores as there are physical cores.<br>
+<br>
+Allocating these resources for your job will lock them out for other users, even if your actual CPU usage is low!<br>
+On the other hand, Slurm will not let you use more cores than you have allocated, even if there are no other running jobs.<br>
+<br>
+<i>Tip:</i> Not all software can make use of more threads even if you are being heavily CPU-limited.<br>
+With PyTorch, if batch preparation is expensive, you could attempt increasing the number of workers.</%tooltip:rich_tooltip>>Threads alloc:</div>
+			<div class="col">
+				<%self:progress_bar ratio="${node.cpu_alloc / node.cpu_total}">${node.cpu_alloc}/${node.cpu_total}</%self:progress_bar>
+			</div>
+		</div>
+		%endif
+
+		%if node.up and has_gpu:
+		<div class="row">
+			<div class="col-md-auto" style="width: 100px;" <%tooltip:rich_tooltip>GPUs allocated by Slurm jobs.<br>
+<br>
+Allocating these resources for your job will lock them out for other users, even if your actual GPU or VRAM usage is low!<br>
+GPUs are the most scarse shared resource! Pay attention to cluster usage and try using weaker GPUs (older ones, with less VRAM) when it makes sense.<br>
+<br>
+<i>Tip:</i> Increasing GPU count may only help performance by a certain amount.<br>
+It also requires your program to support using multiple GPUs explicitly (e.g. PyTorch DP or DDP).<br>
+<br>
+<i>Tip:</i> Measure, benchmark and profile your jobs if they take too long.<br>
+Optimization is an art, avoid blindly increasing the allocated GPU count.<br>
+e.g. if data loading is limited by CPU or disk performance, you must optimize this first to improve your training times.<br>
+<br>
+<i>Tip:</i> You can provide VRAM and architecture constraints as a comma-separated list of <i>features</i> to <b></b>--constraint=</b> when running a job.<br>
+Click on a node's "Details" spoiler to see which <i>features</i> it provides.</%tooltip:rich_tooltip>>GPUs alloc:</div>
+			<div class="col">
+				<%
+				gpus_used = int(node.tres_alloc.get("gres/gpu", 0))
+				gpus_total = int(node.tres_total["gres/gpu"])
+				%>
+				<%self:progress_bar ratio="${gpus_used / gpus_total}">${gpus_used}/${gpus_total}</%self:progress_bar>
+			</div>
+		</div>
+		%endif
+
+		<details>
+			<summary>Details</summary>
+			<pre>
+Name:              ${node.name}
+Arch:              ${node.arch}
+
+CPU load:          ${node.cpu_load}%
+
+Features (avail):
+${format_resource_list(node.available_features)}
+
+Features (active):
+${format_resource_list(node.active_features)}
+
+Address:           ${node.address}
+Hostname:          ${node.hostname}
+Slurm version:     ${node.version}
+
+Kernel/OS version: ${node.kernel_version}
+
+Memory total:      ${node.memory_total_mbytes}MB
+Memory allocated:  ${node.memory_alloc_mbytes}MB
+Mem. free - cache: ${node.memory_free_mbytes}MB
+
+Sockets:           ${node.sockets}
+Boards:            ${node.boards}
+
+State:             ${node.state} (up state: ${node.up})
+Reason for state:  ${node.state_reason}
+
+Threads/Core:      ${node.threads_per_core}
+
+Partitions:
+${format_resource_list(node.partitions)}
+
+Generic resources:
+${format_resource_map(node.gres)}
+
+Trackable resources (total):
+${format_resource_map(node.tres_total)}
+
+Trackable resources (allocated by jobs):
+${format_resource_map(node.tres_alloc)}
+</pre>
+		</details>
+
+        <%
+        filtered_jobs = jobs
+        filtered_jobs = filter(lambda job: job.job_state == "RUNNING", filtered_jobs)
+        filtered_jobs = filter(lambda job: job.nodes is not None and node.name in job.nodes, filtered_jobs)
+        filtered_jobs = list(filtered_jobs)
+        %>
+        %if len(filtered_jobs) > 0:
+        <details>
+            <summary>Jobs (${len(filtered_jobs)})</summary>
+            <%joblist:make_job_table jobs="${filtered_jobs}" compact="${True}"/>
+        </details>
+        %endif
+	</div>
+</%def>
+
+<%def name="make_node(node)">
+	<div class="card"${" disabled" if not node.up else ""}>
+		<div class="card-body">
+			${make_node_card_contents(node)}
+		</div>
+	</div>
+</%def>
+
+<%def name="make_partition(partition, nodes)">
+	<div style="max-width: 100vw;">
+		<div class="partition-heading d-flex" style="padding-left: 16px; padding-top: 8px;">
+            <h1 class="lead" style="width: 100px; padding-right: 32px;">${partition}</h1>
+            <a href="/jobs?partition=${partition}" target="_blank" ${tooltip.tooltip("View all jobs including ones that have stopped running (cancelled, finished, crashed)")}>Jobs</a>
+		</div>
+		<div class="node-card-container">
+			<%
+			for node in nodes:
+				make_node(node)
+			%>
+		</div>
+		<div style="margin-left: 8px; margin-right: 8px;">
+            <%
+            filtered_jobs = jobs
+            filtered_jobs = filter(lambda job: job.job_state in ("RUNNING", "PENDING"), filtered_jobs)
+            filtered_jobs = filter(lambda job: job.partition == partition.strip(), filtered_jobs)
+            %>
+            <%joblist:make_job_table jobs="${filtered_jobs}"/>
+		</div>
+	</div>
+</%def>
