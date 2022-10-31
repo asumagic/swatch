@@ -25,7 +25,7 @@ may not be immediately reflected in the UI.
 
 ```bash
 cd
-git clone # ...
+git clone https://github.com/AsuMagic/swatch.git
 cd swatch
 conda env create -f environment.yml # creates a 'swatch' conda env
 ```
