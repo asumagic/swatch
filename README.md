@@ -8,8 +8,9 @@ required by parsing `scontrol` output.
 - [Node list view](http://localhost:51024/): View advanced node status and
 resource allocation information (as parsed from `scontrol show nodes`).
 View various information on pending or active jobs per-partition and per-node.
-- [Task view](http://localhost:51024/tasks): View the state of jobs on the
-cluster, including per-job resource consumption, state reasons, etc.
+- [Job view](http://localhost:51024/jobs): View the state of jobs on the
+cluster, including per-job resource consumption, state reasons, etc. (as parsed
+from `scontrol show jobs`).
 Running, pending and recently failed or completed tasks will be displayed.
 Your tasks are always shown at the top of the list.
 - Tooltips with explanations and details on hover.
