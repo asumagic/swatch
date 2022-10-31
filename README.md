@@ -62,8 +62,12 @@ To run the server, execute this cursed one-liner **from your machine** (which
 you can of course alias in your shell):
 
 ```bash
-ssh -L 51024:localhost:51024 -t myuser@myslurmloginnode 'exec conda run --no-capture-output --cwd ~/swatch -n swatch ~/swatch/swatch.py 2>&1 | tee -a ~/swatch/log.txt'
+ssh -L localhost:51024:localhost:51432 -t myuser@myslurmloginnode 'exec conda run --no-capture-output --cwd ~/swatch -n swatch ~/swatch/swatch.py --port 51432 2>&1 | tee -a ~/swatch/log.txt'
 ```
+
+To avoid port conflicts with other users, replace both mentions to port `51432`
+with any unused port on the server you are running this on.  
+`51024` will still be the port being forwarded to on your local machine.
 
 Open [`http://localhost:51024`](http://localhost:51024) in your browser.
 
