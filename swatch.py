@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, 
+    format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logging.info("Importing libraries")
 
 from aiohttp import web
 from argparse import ArgumentParser
@@ -17,13 +26,6 @@ from pathlib import Path
 parser = ArgumentParser()
 parser.add_argument("--port", type=int, default=51024)
 args = parser.parse_args()
-
-logging.basicConfig(
-    level=logging.INFO, 
-    format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-
 class PasswordDefinitionException(Exception):
     pass
 
@@ -127,4 +129,6 @@ app.add_routes([
     web.static("/assets/", "assets/")
 ])
 
-web.run_app(app, host="localhost", port=args.port)
+logging.info(f"Server running and listening on localhost:{args.port}")
+logging.info(f"If you followed the README, go to: http://localhost:51024")
+web.run_app(app, host="localhost", port=args.port, print=False)
