@@ -77,6 +77,9 @@ Exit signal: ${job.exit_signal}</pre></%tooltip:rich_tooltip>
 Command:  ${job.command}
 Workdir:  ${job.workdir}
 
+stdout:   ${job.stdout_path}
+stderr:   ${job.stderr_path}
+
 e-mail:   ${job.mail_user} (on: ${job.mail_type})
 
 sbatch:   ${job.was_run_using_sbatch}
@@ -115,17 +118,5 @@ Deadline:     ${job.deadline}
 Suspend time: ${job.suspend_time}</pre></%tooltip:rich_tooltip>>
 			${as_slurm_timedelta(job.run_time)}</td>
         %endif
-
-		<!--<td class="min">
-%if job.stdout_path is not None or job.stderr_path is not None:
-			<a class="link-unstyled" href="/logs?jobId=${job.job_id}" target="_blank">
-                <i class="bi bi-journal-text" <%tooltip:rich_tooltip>
-<pre>
-stdout: ${job.stdout_path}
-stderr: ${job.stderr_path}
-</pre></%tooltip:rich_tooltip>></i>
-            </a>
-%endif
-		</td>-->
 	</tr>\
 </%def>
