@@ -26,6 +26,7 @@ from pathlib import Path
 parser = ArgumentParser()
 parser.add_argument("--port", type=int, default=51024)
 args = parser.parse_args()
+
 class PasswordDefinitionException(Exception):
     pass
 
@@ -98,7 +99,9 @@ async def list_jobs(request: web.Request):
 
     table_template = lookup.get_template("joblist.html")
 
-    return web.Response(content_type="text/html", body=table_template.render(jobs=jobs))
+    response = web.Response(content_type="text/html", body=table_template.render(jobs=jobs))
+    response.enable_compression()
+    return response
 
 async def list_nodes(request: web.Request):
     nodes, jobs = await asyncio.gather(
@@ -113,7 +116,9 @@ async def list_nodes(request: web.Request):
 
     table_template = lookup.get_template("nodelist.html")
 
-    return web.Response(content_type="text/html", body=table_template.render(nodes=nodes, jobs=jobs))
+    response = web.Response(content_type="text/html", body=table_template.render(nodes=nodes, jobs=jobs))
+    response.enable_compression()
+    return response
 
 # async def read_log_file(request: web.Request):
 #     job_id = request.query["jobId"]
