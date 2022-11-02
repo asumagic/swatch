@@ -57,18 +57,17 @@ return partition
 <%def name="make_job_row(job, compact=False)">
 	<tr class="${get_job_class(job)}">
         %if not compact:
-		<td class="min">
-			<i class="bi ${get_job_icon(job)}" <%tooltip:rich_tooltip><pre>Reasons for the ${job.job_state} state: ${", ".join(job.job_state_reasons)}
+		<td class="min" <%tooltip:rich_tooltip><pre>Reasons for the ${job.job_state} state: ${", ".join(job.job_state_reasons)}
 
 Exit code:   ${job.exit_code}
-Exit signal: ${job.exit_signal}</pre></%tooltip:rich_tooltip>
-            </i>
+Exit signal: ${job.exit_signal}</pre></%tooltip:rich_tooltip>>
+			<i class="bi ${get_job_icon(job)}"></i>
 			
 			${get_partition_icon(job.partition) |n}
 		</td>
         %endif
 
-		<th scope="row" class="min">${job.job_id}</th>
+		<td scope="row" class="min important">${job.job_id}</th>
 
 		<td class="cut" style="min-width: 30px; max-width: 80px;">${job.user_name}</td>
 

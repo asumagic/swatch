@@ -23,12 +23,12 @@ tooltips = defaultdict(tooltip_inc)
 <%def name="tooltip(title)"><%
     title_id = tooltips[title]
 %>
- data-bs-toggle="tooltip" data-placement="right" data-title-id="${title_id}"</%def>
+ data-bs-toggle="tooltip" data-title-id="${title_id}"</%def>
 
 <%def name="rich_tooltip()"><%
     title_id = tooltips[escape_quotes(capture(caller.body))]
 %>
- data-bs-toggle="tooltip" data-placement="right" data-bs-html="true" data-title-id="${title_id}"</%def>
+ data-bs-toggle="tooltip" data-stickable="" data-bs-html="true" data-title-id="${title_id}"</%def>
 
 <%def name="tooltip_trigger_js()">
     <div hidden><%doc> awful tooltip container</%doc>
@@ -43,11 +43,13 @@ tooltips = defaultdict(tooltip_inc)
             const titleEl = document.getElementById("tooltip-title-" + titleId);
             var contents = titleEl.cloneNode(true);
 
-            if (this.classList.contains("permanent-tooltip-el")) {
-                contents.innerHTML += "<br><i>Sticky tooltip, click again to hide</i>";
-                // contents.classList.add("permanent-tooltip");
-            } else {
-                contents.innerHTML += "<br><i>Click to make tooltip sticky</i>"
+            if ("stickable" in this.dataset) {
+                if (this.classList.contains("permanent-tooltip-el")) {
+                    contents.innerHTML += "<br><i>Sticky tooltip, click again to hide</i>";
+                    // contents.classList.add("permanent-tooltip");
+                } else {
+                    contents.innerHTML += "<br><i>Click to make tooltip sticky</i>"
+                }
             }
 
             return contents;
@@ -57,10 +59,14 @@ tooltips = defaultdict(tooltip_inc)
         const tooltipList = tooltipTriggerList.map((triggerEl) => {
             const tooltip = new bootstrap.Tooltip(triggerEl, {
                 title: getTooltipContents,
-                trigger: "manual"
+                trigger: "manual",
+                placement: "bottom",
+                fallbackPlacements: ["bottom", "top"],
+                boundary: document.body
             });
 
             const showOrUpdate = () => {
+                tooltip.enable();
                 if ("aria-describedby" in triggerEl.attributes) {
                     tooltip.setContent();
                     tooltip.update();
@@ -69,22 +75,25 @@ tooltips = defaultdict(tooltip_inc)
                 }
             };
 
-            triggerEl.addEventListener("click", () => {
-                if (!triggerEl.classList.contains("permanent-tooltip-el")) {
-                    triggerEl.classList.add("permanent-tooltip-el");
-                } else {
-                    triggerEl.classList.remove("permanent-tooltip-el");
-                }
+            if ("stickable" in triggerEl.dataset) {
+                triggerEl.addEventListener("click", () => {
+                        if (!triggerEl.classList.contains("permanent-tooltip-el")) {
+                            triggerEl.classList.add("permanent-tooltip-el");
+                        } else {
+                            triggerEl.classList.remove("permanent-tooltip-el");
+                        }
+                    showOrUpdate();
+                });
+            }
+            
+            triggerEl.addEventListener("mouseenter", () => {
                 showOrUpdate();
             });
             
-            triggerEl.addEventListener("mouseover", () => {
-                showOrUpdate();
-            });
-            
-            triggerEl.addEventListener("mouseout", () => {
+            triggerEl.addEventListener("mouseleave", () => {
                 if (!triggerEl.classList.contains("permanent-tooltip-el")) {
                     tooltip.hide();
+                    tooltip.disable();
                 }
             });
 
