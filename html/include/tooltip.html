@@ -55,18 +55,8 @@ tooltips = defaultdict(tooltip_inc)
             return contents;
         }
 
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        const tooltipList = tooltipTriggerList.map((triggerEl) => {
-            const tooltip = new bootstrap.Tooltip(triggerEl, {
-                title: getTooltipContents,
-                trigger: "manual",
-                placement: "bottom",
-                fallbackPlacements: ["bottom", "top"],
-                boundary: document.body
-            });
-
+        function applyTooltipStuff(triggerEl, tooltip) {
             const showOrUpdate = () => {
-                tooltip.enable();
                 if ("aria-describedby" in triggerEl.attributes) {
                     tooltip.setContent();
                     tooltip.update();
@@ -77,11 +67,11 @@ tooltips = defaultdict(tooltip_inc)
 
             if ("stickable" in triggerEl.dataset) {
                 triggerEl.addEventListener("click", () => {
-                        if (!triggerEl.classList.contains("permanent-tooltip-el")) {
-                            triggerEl.classList.add("permanent-tooltip-el");
-                        } else {
-                            triggerEl.classList.remove("permanent-tooltip-el");
-                        }
+                    if (!triggerEl.classList.contains("permanent-tooltip-el")) {
+                        triggerEl.classList.add("permanent-tooltip-el");
+                    } else {
+                        triggerEl.classList.remove("permanent-tooltip-el");
+                    }
                     showOrUpdate();
                 });
             }
@@ -93,9 +83,21 @@ tooltips = defaultdict(tooltip_inc)
             triggerEl.addEventListener("mouseleave", () => {
                 if (!triggerEl.classList.contains("permanent-tooltip-el")) {
                     tooltip.hide();
-                    tooltip.disable();
                 }
             });
+        }
+
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map((triggerEl) => {
+            const tooltip = new bootstrap.Tooltip(triggerEl, {
+                title: getTooltipContents,
+                trigger: "manual",
+                placement: "bottom",
+                fallbackPlacements: ["bottom", "top"],
+                boundary: document.body
+            });
+
+            applyTooltipStuff(triggerEl, tooltip);
 
             return tooltip;
         });
