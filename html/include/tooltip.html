@@ -31,22 +31,64 @@ tooltips = defaultdict(tooltip_inc)
  data-bs-toggle="tooltip" data-placement="right" data-bs-html="true" data-title-id="${title_id}"</%def>
 
 <%def name="tooltip_trigger_js()">
-    %for title, tooltip_id in tooltips.items():
-        <div id="tooltip-title-${tooltip_id}" hidden title="${title}"></div>
-    %endfor
+    <div hidden><%doc> awful tooltip container</%doc>
+        %for title, tooltip_id in tooltips.items():
+            <div id="tooltip-title-${tooltip_id}">${title |n}</div>
+        %endfor
+    </div>
 
     <script defer>
-        function tooltipContents() {
+        function getTooltipContents() {
             const titleId = this.dataset.titleId;
             const titleEl = document.getElementById("tooltip-title-" + titleId);
-            return titleEl.title;
+            var contents = titleEl.cloneNode(true);
+
+            if (this.classList.contains("permanent-tooltip-el")) {
+                contents.innerHTML += "<br><i>Sticky tooltip, click again to hide</i>";
+                // contents.classList.add("permanent-tooltip");
+            } else {
+                contents.innerHTML += "<br><i>Click to make tooltip sticky</i>"
+            }
+
+            return contents;
         }
 
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl, {
-                title: tooltipContents
-            })
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map((triggerEl) => {
+            const tooltip = new bootstrap.Tooltip(triggerEl, {
+                title: getTooltipContents,
+                trigger: "manual"
+            });
+
+            const showOrUpdate = () => {
+                if ("aria-describedby" in triggerEl.attributes) {
+                    tooltip.setContent();
+                    tooltip.update();
+                } else {
+                    tooltip.show();
+                }
+            };
+
+            triggerEl.addEventListener("click", () => {
+                if (!triggerEl.classList.contains("permanent-tooltip-el")) {
+                    triggerEl.classList.add("permanent-tooltip-el");
+                } else {
+                    triggerEl.classList.remove("permanent-tooltip-el");
+                }
+                showOrUpdate();
+            });
+            
+            triggerEl.addEventListener("mouseover", () => {
+                showOrUpdate();
+            });
+            
+            triggerEl.addEventListener("mouseout", () => {
+                if (!triggerEl.classList.contains("permanent-tooltip-el")) {
+                    tooltip.hide();
+                }
+            });
+
+            return tooltip;
         });
     </script>
 </%def>
