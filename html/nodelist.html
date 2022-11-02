@@ -131,7 +131,7 @@ def format_resource_list(resources):
 		</div>
 		%endif
 
-		<!--
+        <%doc>
 		%if node.up and node.cpu_load is not None:
 		<div class="row">
 			<div class="col-md-auto" style="width: 100px;">CPU load:</div>
@@ -140,7 +140,7 @@ def format_resource_list(resources):
 			</div>
 		</div>
 		%endif
-		-->
+		</%doc>
 
 		%if node.up and node.cpu_total != 0:
 		<div class="row">
