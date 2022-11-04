@@ -73,5 +73,5 @@ def parse_info_line(job_line: str) -> dict:
             fields[last_field] = word[eq_index+1:]
         elif last_field is not None:
             fields[last_field] += f" {word}"
-    
-    return fields
+
+    return {k: v.strip() for k, v in fields.items()}
