@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+from typing import Any, Callable
 
 logging.basicConfig(
     level=logging.INFO, 
@@ -60,6 +61,9 @@ lookup = TemplateLookup(
     default_filters=["h"]
 )
 
+def combine_filters(filters):
+    return lambda x: all(fn(x) for fn in filters)
+
 def get_state_rank(state: str):
     return {
         "CANCELLED": 0,
@@ -81,21 +85,26 @@ def make_job_sort_key():
 
     return job_sorter
 
+def generate_job_filters(query):
+    if "partition" in query:
+        yield lambda job: job.partition in query["partition"].split(",")
+
+    if "state" in query:
+        yield lambda job: job.job_state in query["state"].split(",")
+
+    if "node" in query:
+        yield lambda job: job.nodes is not None and not set(query["node"].split(",")).isdisjoint(job.nodes)
+
+    if "user" in query:
+        yield lambda job: job.user_name in query["user"].split(",")
+
 async def list_jobs(request: web.Request):
-    jobs = (await simple_cache(query_jobs)).values()
+    job_filter = combine_filters(list(generate_job_filters(request.query)))
 
+    jobs = await simple_cache(query_jobs)
+    jobs = jobs.values()
+    jobs = list(filter(job_filter, jobs))
     jobs = sorted(jobs, key=make_job_sort_key())
-
-    if "partition" in request.query:
-        jobs = filter(lambda job: job.partition == request.query["partition"], jobs)
-
-    if "state" in request.query:
-        jobs = filter(lambda job: job.job_state in request.query["state"], jobs)
-
-    if "node" in request.query:
-        jobs = filter(lambda job: job.nodes is not None and request.query["node"] in job.nodes, jobs)
-
-    jobs = list(jobs)
 
     table_template = lookup.get_template("joblist.html")
 
@@ -103,16 +112,26 @@ async def list_jobs(request: web.Request):
     response.enable_compression()
     return response
 
+def generate_node_filters(query):
+    if "partition" in query:
+        yield lambda node: not set(query["partition"].split(",")).isdisjoint(node.partitions)
+
 async def list_nodes(request: web.Request):
+    node_filter = combine_filters(list(generate_node_filters(request.query)))
+    job_filter = combine_filters(list(generate_job_filters(request.query)))
+
     nodes, jobs = await asyncio.gather(
         simple_cache(query_nodes),
         simple_cache(query_jobs)
     )
 
-    nodes = list(nodes.values())
+    nodes = nodes.values()
+    nodes = list(filter(node_filter, nodes))
 
     jobs = jobs.values()
+    jobs = filter(job_filter, jobs)
     jobs = sorted(jobs, key=make_job_sort_key())
+    jobs = list(jobs)
 
     table_template = lookup.get_template("nodelist.html")
 
