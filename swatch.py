@@ -67,9 +67,10 @@ def combine_filters(filters):
 def get_state_rank(state: str):
     return {
         "CANCELLED": 0,
-        "FAILED": 1,
-        "TIMEOUT": 2,
-        "OUT_OF_MEMORY": 3,
+        "NODE_FAIL": 1,
+        "FAILED": 2,
+        "TIMEOUT": 3,
+        "OUT_OF_MEMORY": 4,
         "COMPLETING": 5,
         "RUNNING": 10,
         "COMPLETED": 20
