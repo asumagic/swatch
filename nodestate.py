@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 
 from parsing import *
 
-fail_states = ("DOWN", "DRAIN")
+fail_states = ("DOWN", "NODEDOWN", "DRAIN")
 
 
 def get_and_transform(d, key, transform, default):
