@@ -70,6 +70,7 @@ def get_state_rank(state: str):
         "FAILED": 1,
         "TIMEOUT": 2,
         "OUT_OF_MEMORY": 3,
+        "COMPLETING": 5,
         "RUNNING": 10,
         "COMPLETED": 20
     }.get(state, -1)

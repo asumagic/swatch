@@ -234,7 +234,7 @@ ${format_resource_map(node.tres_alloc)}
 
         <%
         filtered_jobs = jobs
-        filtered_jobs = filter(lambda job: job.job_state == "RUNNING", filtered_jobs)
+        filtered_jobs = filter(lambda job: job.job_state in ("RUNNING", "COMPLETING"), filtered_jobs)
         filtered_jobs = filter(lambda job: job.nodes is not None and node.name in job.nodes, filtered_jobs)
         filtered_jobs = list(filtered_jobs)
         %>
@@ -270,7 +270,7 @@ ${format_resource_map(node.tres_alloc)}
 		<div style="margin-left: 8px; margin-right: 8px;">
             <%
             filtered_jobs = jobs
-            filtered_jobs = filter(lambda job: job.job_state in ("RUNNING", "PENDING"), filtered_jobs)
+            filtered_jobs = filter(lambda job: job.job_state in ("RUNNING", "PENDING", "COMPLETING"), filtered_jobs)
             filtered_jobs = filter(lambda job: job.partition == partition.strip(), filtered_jobs)
             %>
             <%joblist:make_job_table jobs="${filtered_jobs}"/>
